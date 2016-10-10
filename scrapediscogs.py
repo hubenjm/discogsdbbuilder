@@ -98,8 +98,8 @@ def testsearch(filename):
 		print type(release.id), type(release.formats[0]['name']), type(release.title), type(', '.join(release.genres)), type(release.year)
 
 
-def populateDB(filename):
-	conn = sqlite3.connect('example.db')
+def populateDB(filename, dbfilename):
+	conn = sqlite3.connect(dbfilename)
 	
 	c = conn.cursor()
 	c.execute('''CREATE TABLE album
@@ -210,8 +210,8 @@ def printAlbumEntry(row):
 	print colors.bold + "track durations: " + colors.endc, row[9]
 	print colors.bold + "companies: " + colors.endc, row[10]
 
-def findSongLocal(song, dbfile):
-	conn = sqlite3.connect(dbfile)
+def findSongLocal(song, dbfilename):
+	conn = sqlite3.connect(dbfilename)
 	c = conn.cursor()
 
 	data = c.execute("SELECT * FROM track WHERE title LIKE '%" + song + "%'")
@@ -225,16 +225,16 @@ def findSongLocal(song, dbfile):
 
 	conn.close()
 
-def findAlbumLocal(title, dbfile):
-	conn = sqlite3.connect(dbfile)
+def findAlbumLocal(title, dbfilename):
+	conn = sqlite3.connect(dbfilename)
 	c = conn.cursor()
 
 	data = c.execute("SELECT * FROM album WHERE title LIKE '%" + title + "%'")
 	for row in data:
 		printAlbumEntry(row)
 
-def executeSQLstatement(statement, dbfile):
-	conn = sqlite3.connect(dbfile)
+def executeSQLstatement(statement, dbfilename):
+	conn = sqlite3.connect(dbfilename)
 	c = conn.cursor()
 
 	for row in c.execute('SELECT artist FROM album ORDER BY albumID'):
@@ -244,6 +244,6 @@ def executeSQLstatement(statement, dbfile):
 
 if __name__ == "__main__":
 #	testsearch('./albumsinput.txt')
-	populateDB('./albumsinput.txt')
+	populateDB('./albumsinput.txt', 'example.db')
 #	findSongLocal("Craigonometry", "example.db")
 #	findAlbumLocal("Endless Fingers", "example.db")
