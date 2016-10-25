@@ -118,6 +118,9 @@ class MusicDatabase(object):
 
 		return albums
 
+	def _execute_sqlite3_statement(self, statement):
+		return self._cur.execute(statement)
+
 	def add_data(self, albums_input_location):
 		"""
 		"""
@@ -208,7 +211,6 @@ class Album(object):
 			+ colors.bold + "track list: " + colors.endc + ", ".join(self.track_list) + '\n'\
 			+ colors.bold + "track durations: " + colors.endc + ", ".join(self.track_durations) + '\n'\
 			+ colors.bold + "companies: " + colors.endc + ", ".join(self.companies)
-#		s = ", ".join(self.companies)
 		return s
 
 class Track(object):
@@ -296,50 +298,6 @@ def find_artist_discogs(d, artist):
 
 def get_discogs_client(token):
 	return discogs_client.Client('MusicDBCreater/0.1', user_token=token)
-	
-def testsearch(filename):
-	d = get_discogs_client(TOKEN)
-	artists, albums = load_album_list(filename)
-	assert len(artists) == len(albums)
-
-	for j in range(len(artists)):
-		release = find_album_discogs(d, artists[j], albums[j])
-		print type(release)
-		print artists[j] + " - " + release.title + ":"
-		print release.formats[0]['name']
-		print ', '.join(release.genres)
-		print release.id
-		for k in range(len(release.tracklist)):
-			track = release.tracklist[k]
-			print track.position + ": " + track.title + " - " + track.duration
-		
-		print "Credits:"
-		for k in range(len(release.credits)):
-			print release.credits[k].name
-			print release.credits[k].id
-
-		print "Notes:"
-		print release.notes
-		print type(release.notes)
-		
-		print "Companies:"
-		print release.companies
-		print type(release.companies)
-		print ""
-
-		print "Tracklist:"
-		print type(release.tracklist)
-
-		print type(release.id), type(release.formats[0]['name']), type(release.title), type(', '.join(release.genres)), type(release.year)
-
-#def executeSQLstatement(statement, dbfilename):
-#	conn = sqlite3.connect(dbfilename)
-#	c = conn.cursor()
-
-#	for row in c.execute('SELECT artist FROM album ORDER BY albumID'):
-#		print row
-
-#	conn.close()
 
 if __name__ == "__main__":
 	music_db = MusicDatabase('example.db')
