@@ -1,7 +1,8 @@
 # discogsdbbuilder
-Music SQL database builder and query framework based on the discogs API
+Music SQL database builder and query framework based on the discogs API.
 
 This is a relatively simple module that defines the MusicDatabase object, which interfaces with the database on www.discogs.com.
+The main use is to provide a way to analyze one's own music collection.
 It is simple to read in a text file containing the artist name and album title for a collection of albums in csv format.
 The ```MusicDatabase.add_data(input_file_location)``` routine goes through each line of the text input and searches www.discogs.com using their Python API.
 It then scrapes the different meta data for the given album and populates an SQL database using sqlite3.
@@ -23,7 +24,7 @@ All of the core functionality is included in the file scrapediscogs.py.
 from scrapediscogs import MusicDatabase
 x = MusicDatabase(db_location)
 x.add_data(album_list_location)
-for a in x.find_album(artist_name):
+for a in x.find_album(album_title):
   print a
 ```
 

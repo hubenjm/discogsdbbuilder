@@ -107,16 +107,17 @@ class MusicDatabase(object):
 	def find_albums_by_artist(self, artist_name):
 		"""
 		"""
-		#first look up artist in db and retrieve artist id
-		#then search through albums db and match by artist id
 		albums = []
-		artist_results = self.find_artist(artist_name)
-		for artist in artist_results:
-			batch = self._cur.execute("SELECT * FROM album WHERE artistID = " + str(artist.id))
-			for album_entry in batch:
-				albums.append(Album(album_entry))
+		for album_entry in self._cur.execute("SELECT * FROM album WHERE artist LIKE '%" + artist_name + "%'"):
+			albums.append(Album(album_entry))
 
 		return albums
+
+	def find_songs_by_album_artist(self, artist_name):
+		tracks = []
+		for track_entry in self._cur.execute("SELECT * FROM track WHERE artist LIKE '%" + artist_name + "%'"):
+			tracks.append(Track(track_entry))
+		return tracks
 
 	def _execute_sqlite3_statement(self, statement):
 		return self._cur.execute(statement)
@@ -176,7 +177,7 @@ class MusicDatabase(object):
 
 			self._cur.execute("INSERT OR IGNORE INTO album (albumID, title, artistID, artist, year, genres, notes, formats, tracklist, trackdurations, companies) VALUES (?,?,?,?,?,?,?,?,?,?,?)", albumdata)
 			for k in xrange(len(release.tracklist)):
-				trackcredits = ", ".join([a.name for a in release.tracklist[k].credits])
+				trackcredits = ", ".join([str(a.id) + " - " + a.name for a in release.tracklist[k].credits])
 				trackdata = [release.tracklist[k].title, release_artist.id, release_artist.name, release.id, release.title, trackcredits, release.tracklist[k].duration, release.tracklist[k].position]
 				self._cur.execute("INSERT OR IGNORE INTO track (title, artistID, artist, albumID, album, credits, duration, position) VALUES (?,?,?,?,?,?,?,?)", trackdata)
 
@@ -192,6 +193,7 @@ class Album(object):
 		self.artist_id = sql_album_tuple[_ALBUM_ARTIST_ID]
 		self.artist_name = sql_album_tuple[_ALBUM_ARTIST_NAME]
 		self.year = sql_album_tuple[_ALBUM_YEAR]
+		#below are lists
 		self.genres = sql_album_tuple[_ALBUM_GENRES].split(', ')
 		self.notes = sql_album_tuple[_ALBUM_NOTES].split(', ')
 		self.formats = sql_album_tuple[_ALBUM_FORMATS].split(', ')
@@ -199,19 +201,23 @@ class Album(object):
 		self.track_durations = sql_album_tuple[_ALBUM_TRACK_DURATIONS].split(', ')
 		self.companies = sql_album_tuple[_ALBUM_COMPANIES].split(', ')
 	
-	def __str__(self):
-		s = colors.bold + "album ID: " + colors.endc + str(self.id) + '\n'\
-			+ colors.bold + "album title: " + colors.endc + self.title + '\n'\
-			+ colors.bold + "artist ID: " + colors.endc + str(self.artist_id) + '\n'\
-			+ colors.bold + "artist name: " + colors.endc + self.artist_name + '\n'\
-			+ colors.bold + "year: " + colors.endc + str(self.year) + '\n'\
-			+ colors.bold + "genres: " + colors.endc + ", ".join(self.genres) + '\n'\
-			+ colors.bold + "notes: " + colors.endc + ", ".join(self.notes) + '\n'\
-			+ colors.bold + "formats: " + colors.endc + ", ".join(self.formats) + '\n'\
-			+ colors.bold + "track list: " + colors.endc + ", ".join(self.track_list) + '\n'\
-			+ colors.bold + "track durations: " + colors.endc + ", ".join(self.track_durations) + '\n'\
-			+ colors.bold + "companies: " + colors.endc + ", ".join(self.companies)
+	def __unicode__(self):
+		s = colors.bold + u"album ID: " + colors.endc + unicode(self.id) + '\n'\
+			+ colors.bold + u"album title: " + colors.endc + unicode(self.title) + '\n'\
+			+ colors.bold + u"artist ID: " + colors.endc + unicode(self.artist_id) + '\n'\
+			+ colors.bold + u"artist name: " + colors.endc + unicode(self.artist_name) + '\n'\
+			+ colors.bold + u"year: " + colors.endc + unicode(self.year) + '\n'\
+			+ colors.bold + u"genres: " + colors.endc + unicode(", ".join(self.genres)) + '\n'\
+			+ colors.bold + u"notes: " + colors.endc + unicode(", ".join(self.notes)) + '\n'\
+			+ colors.bold + u"formats: " + colors.endc + unicode(", ".join(self.formats)) + '\n'\
+			+ colors.bold + u"track list: " + colors.endc + unicode(", ".join(self.track_list)) + '\n'\
+			+ colors.bold + u"track durations: " + colors.endc + unicode(", ".join(self.track_durations)) + '\n'\
+			+ colors.bold + u"companies: " + colors.endc + unicode(", ".join(self.companies))
+
 		return s
+
+	def __str__(self):
+		return unicode(self).encode('utf-8')
 
 class Track(object):
 	"""The Track entry object."""
@@ -221,20 +227,23 @@ class Track(object):
 		self.artist_name = sql_track_tuple[_TRACK_ARTIST_NAME]
 		self.album_id = sql_track_tuple[_TRACK_ALBUM_ID]
 		self.album_title = sql_track_tuple[_TRACK_ALBUM_TITLE]
-		self.credits = sql_track_tuple[_TRACK_CREDITS]
+		self.credits = sql_track_tuple[_TRACK_CREDITS].split(', ')
 		self.duration = sql_track_tuple[_TRACK_DURATION]
 		self.position = sql_track_tuple[_TRACK_POSITION]
 
-	def __str__(self):
-		s = colors.bold + "track title: " + colors.endc + self.title + '\n'\
-			+ colors.bold + "artist ID: " + colors.endc + str(self.artist_id) + '\n'\
-			+ colors.bold + "artist name: " + colors.endc + self.artist_name + '\n'\
-			+ colors.bold + "album ID: " + colors.endc + str(self.album_id) + '\n'\
-			+ colors.bold + "album title: " + colors.endc + self.album_title + '\n'\
-			+ colors.bold + "credits: " + colors.endc + ", ".join(self.credits) + '\n'\
-			+ colors.bold + "duration: " + colors.endc + self.duration + '\n'\
-			+ colors.bold + "position: " + colors.endc + self.position
+	def __unicode__(self):
+		s = colors.bold + u"track title: " + colors.endc + self.title + '\n'\
+			+ colors.bold + u"artist ID: " + colors.endc + unicode(self.artist_id) + '\n'\
+			+ colors.bold + u"artist name: " + colors.endc + unicode(self.artist_name) + '\n'\
+			+ colors.bold + u"album ID: " + colors.endc + unicode(self.album_id) + '\n'\
+			+ colors.bold + u"album title: " + colors.endc + unicode(self.album_title) + '\n'\
+			+ colors.bold + u"credits: " + colors.endc + unicode(", ".join(self.credits)) + '\n'\
+			+ colors.bold + u"duration: " + colors.endc + unicode(self.duration) + '\n'\
+			+ colors.bold + u"position: " + colors.endc + unicode(self.position)
 		return s
+
+	def __str__(self):
+		return unicode(self).encode('utf-8')
 
 class Artist(object):
 	"""The Artist entry object."""
@@ -242,10 +251,13 @@ class Artist(object):
 		self.id = sql_artist_tuple[_ARTIST_ID]
 		self.name = sql_artist_tuple[_ARTIST_NAME]
 
-	def __str__(self):
-		s = colors.bold + "artist ID: " + colors.endc + str(self.id) + '\n'\
-			+ colors.bold + "artist name: " + colors.endc + self.name
+	def __unicode__(self):
+		s = colors.bold + u"artist ID: " + colors.endc + unicode(self.id) + '\n'\
+			+ colors.bold + u"artist name: " + colors.endc + unicode(self.name)
 		return s
+
+	def __str__(self):
+		return unicode(self).encode('utf-8')
 		
 
 def load_album_list(filename):
@@ -301,12 +313,20 @@ def get_discogs_client(token):
 
 if __name__ == "__main__":
 	music_db = MusicDatabase('example.db')
-#	music_db.add_data('albumsinput.txt')
-	for r in music_db.find_albums_by_artist('Seamus Blake'):
+	#music_db.add_data('albumsinput.txt')
+	for r in music_db.find_albums_by_artist('David Sanborn'):
 		print r
 		print ""
 
 	for r in music_db.find_album(album_title = "The Call"):
+		print r
+		print ""
+
+	for r in music_db.find_song('Yeti'):
+		print r
+		print ""
+
+	for r in music_db.find_songs_by_album_artist('Brad Mehldau'):
 		print r
 		print ""
 
