@@ -1,9 +1,10 @@
 # discogsdbbuilder
 Music SQL database builder and query framework based on the discogs API
 
-This is a relatively simple program that reads in a text file containing the artist name and album title for a collection of albums in csv format.
-The program **scrapealbuminfo.py** goes through each line of the text input and searches www.discogs.com using their Python API.
-It then scrapes the different meta data for the given album and populates an SQL database using sqlite.
+This is a relatively simple module that defines the MusicDatabase object, which interfaces with the database on www.discogs.com.
+It is simple to read in a text file containing the artist name and album title for a collection of albums in csv format.
+The ```MusicDatabase.add_data(<input\_file.txt>)``` routine goes through each line of the text input and searches www.discogs.com using their Python API.
+It then scrapes the different meta data for the given album and populates an SQL database using sqlite3.
 
 Once the database has been constructed, the user can then run standard SQL queries on the data.
 
@@ -18,14 +19,14 @@ All of the core functionality is included in the file scrapediscogs.py.
 
 # Usage
 
-```python createdb.py <albumsinput.txt> <dbname.db>```
-```python querysong.py songname <dbname.db>```
+```from scrapediscogs import MusicDatabase```
+```x = MusicDatabase(<example.db>)```
+```x.add\_data(<album_list.txt>)```
+```for a in x.find\_album(<artist name>):```
+```		print a```
 
 # Future
 
-* Add more specialized SQL calls and perhaps incorporate into query.py module
 * Clean up, turn into bonafide app, and submit to PyPi
-* If <dbname.db> already exists, fix createdb.py so that it overwrites or just updates with new entries
-* Improve print output for search queries
 
 
