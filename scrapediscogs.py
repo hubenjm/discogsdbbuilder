@@ -2,6 +2,8 @@ import discogs_client
 import sqlite3
 import csv
 import re
+from fuzzywuzzy import fuzz
+from unidecode import unidecode
 import os
 from colors import colors
 import progressbar
@@ -149,10 +151,11 @@ class MusicDatabase(object):
 				print("add_data: no album found for artist = {}, album = {}. skipping...".format(artists[j], albums[j])) #incorporate logging here?
 				continue
 
-			release_artist = find_artist_discogs(d, artists[j]) #at this point assumes that the input_album_list.txt correctly lists the album artist
-			if release_artist is None: #failsafe in case user-given album artist yields no results
-				#just use first artist on list of artists given in release
-				release_artist = release.artists[0]
+#			release_artist = find_artist_discogs(d, artists[j]) #at this point assumes that the input_album_list.txt correctly lists the album artist
+#			if release_artist is None: #failsafe in case user-given album artist yields no results
+#				#just use first artist on list of artists given in release
+#				release_artist = release.artists[0]
+			release_artist = release.artists[0]
 
 			#insert artist into database if not yet present
 			self._cur.execute("INSERT OR IGNORE INTO artist (ID, name) VALUES (?,?)", [release_artist.id, release_artist.name])
@@ -181,7 +184,7 @@ class MusicDatabase(object):
 				trackdata = [release.tracklist[k].title, release_artist.id, release_artist.name, release.id, release.title, trackcredits, release.tracklist[k].duration, release.tracklist[k].position]
 				self._cur.execute("INSERT OR IGNORE INTO track (title, artistID, artist, albumID, album, credits, duration, position) VALUES (?,?,?,?,?,?,?,?)", trackdata)
 
-			progressbar.printProgress(j+1, m, prefix = 'add_data: adding album {}...'.format(j+1), suffix = '', decimals = 2, barLength = 40, printEnd = True)
+			#progressbar.printProgress(j+1, m, prefix = 'add_data: adding album {}...'.format(j+1), suffix = '', decimals = 2, barLength = 40, printEnd = True)
 
 		self._conn.commit()
 
@@ -271,7 +274,7 @@ def load_album_list(filename):
 	albums = []
 	artists = []
 	with open(filename, 'rb') as csvfile:
-		data = csv.reader(csvfile, delimiter=',')
+		data = csv.reader(csvfile, delimiter='|')
 		for row in data:
 			assert len(row) == 2, "loadList: error, row does not have sufficient entries"
 			artists.append(row[0])
@@ -287,13 +290,25 @@ def find_album_discogs(d, artist, album):
 	
 	returns: discogs_client.models.Release
 	"""
-	results = d.search(artist + ", " + album, type='release')
+	results = d.search(artist + " - " + album, type='release')
 	#could spice this up by choosing the search result that includes the most meta data
 	#for now it just returns the first result which has the artist string listed in the artists tag and matching title
-	for j in xrange(len(results)):
+	for j in xrange(min(len(results), 5)):
 		#print results[j].title, results[j].artists[0], type(results[j].artists)
-		if re.search(album, results[j].title) and artist in [results[j].artists[k].name for k in range(len(results[j].artists))]:
+#		if re.search(album.replace(' ','').lower(), results[j].title.replace(' ','').lower()) and artist.replace(' ', '').lower() in [results[j].artists[k].name.replace(' ','').lower() for k in range(min(len(results[j].artists), 5))]:
+		print results[j]
+		ratio = fuzz.WRatio((artist + " - " + album).lower(), unidecode(results[j].title).lower())
+		if ratio > 80:
+			print ratio
 			return results[j]
+
+		#need to remove (#) from artist name before checking equals
+
+#	#if no results, try searching for just album name
+#	results = d.search(album, type='release')
+#	for j in xrange(len(results)):
+#		if artist.replace(' ', '').lower() in [results[j].artists[k].name for k in range(len(results[j].artists))]:
+#			return results[j]
 
 	print("findAlbum: Album '{}' not found.".format(artist + " - " + album))
 	return None
