@@ -1,4 +1,4 @@
-# discogsdbbuilder
+# scrapediscogs.py
 Music SQL database builder and query framework based on the discogs API.
 
 This is a relatively simple module that defines the MusicDatabase object, which interfaces with the database on www.discogs.com.
