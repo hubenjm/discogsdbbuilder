@@ -31,3 +31,9 @@ for a in x.find_album(album_title):
 # Future
 
 * Clean up, turn into bonafide app, and submit to PyPi
+
+# Dependencies
+
+* discogs_client https://github.com/discogs/discogs_client
+* unidecode https://pypi.python.org/pypi/Unidecode
+* sqlite3
