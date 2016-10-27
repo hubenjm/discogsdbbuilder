@@ -1,3 +1,8 @@
+The Butterfield Blues Band|The Resurrection of Pigboy Crabshaw
+James Carter|In Carterian Fashion
+James Carter|Heaven On Earth
+Benny Green|Bluebird
+Benny Green|Jazz At The Bistro
 David Sanborn|Inside
 David Sanborn|Upfront
 David Sanborn|Hearsay
@@ -21,14 +26,12 @@ Spyro Gyra|The Very Best of Spyro Gyra
 The Benny Green Trio|Testifyin'
 Benny Green|Kaleidoscope
 Benny Green|These Are Soulful Days
-Benny Green & Russell Malone|Bluebird
-Benny Green & Russell Malone|Jazz At The Bistro
 Gravity|Grimy
 Sax Gordon|You Knock Me Out
 Sax Gordon & Doug James|Jolly Jump Jive
 Doug James & Sax Gordon|Swing Jump Jive
 Sax Gordon|Have Horn Will Travel
-Dexter Gordon|Round Midnight
+Herbie Hancock|Round Midnight
 Dexter Gordon|Go!
 Dave Glenn Little Big Band|Journeys
 Robert Glasper|In My Element
@@ -36,8 +39,6 @@ Robert Glasper|Double Booked
 Stan Getz|People Time
 James Carter|Live At Baker's Keyboard Lounge
 James Carter|Chasin' The Gypsy
-James Carter|In A Carterian Fashion
-James Carter|Heaven On Earth
 Benny Carter|The Urbane Sessions
 Tim Carey|Room 114
 BWB|Groovin'

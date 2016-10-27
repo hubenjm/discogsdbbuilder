@@ -1,10 +1,13 @@
 import discogs_client
+from discogs_client.exceptions import HTTPError
 import sqlite3
 import csv
 import re
-#from fuzzywuzzy import fuzz
+from fuzzywuzzy import fuzz
 from unidecode import unidecode
+from functools import wraps
 import os
+import time
 
 #change the token in 'token.txt' as needed
 TOKEN = open('./token.txt').readline().strip()
@@ -37,12 +40,13 @@ _ARTIST_ID = 0
 _ARTIST_NAME = 1
 
 class MusicDatabase(object):
-	def __init__(self, music_db_filename):
+	def __init__(self, music_db_filename, min_ratio = 85):
 		self._music_db_filename = music_db_filename
 		self._directory = os.path.dirname(os.path.abspath(__file__))
 		self._music_db_location = os.path.join(self._directory, self._music_db_filename)
 		self._conn = sqlite3.connect(self._music_db_location)
 		self._cur = self._conn.cursor()
+		self._min_ratio = min_ratio
 
 	def __del__(self):
 		self._conn.close()
@@ -141,24 +145,24 @@ class MusicDatabase(object):
 
 		#read entries from albumlistfile
 		artists, albums = load_album_list(albums_input_location)
-		m = len(albums)
-		for j in xrange(m):
-			release = find_album_discogs(d, artists[j], albums[j])
+
+		#search discogs_client for each album and add to tables
+		for j in xrange(len(albums)):
+			release = find_album_discogs(d, artists[j], albums[j], min_ratio = self._min_ratio)
 			if release is None:
 				print("add_data: no album found for artist = {}, album = {}. skipping...".format(artists[j], albums[j])) #incorporate logging here?
 				continue
 
-			#release_artist = release.artists[0]
-			release_artist = match_artist(release.artists, artists[j])
+			release_artist = match_artist(release.artists, artists[j], min_ratio = self._min_ratio)
 			if release_artist is None:
 				print("add_data: no album found for artist = {}, album = {}. skipping...".format(artists[j], albums[j]))
 				continue
 
-			print "add_data: {}/{} - ".format(j+1, m) + str(release)
+			print u"add_data: {}/{} - ".format(j+1, len(albums)) + release_artist.name + " - " + release.title
 			#insert artist into database if not yet present
 			self._cur.execute("INSERT OR IGNORE INTO artist (ID, name) VALUES (?,?)", [release_artist.id, release_artist.name])
 
-			#process release.tracklist
+			#process release.tracklist, companies, notes
 			tracknames = [release.tracklist[k].title for k in range(len(release.tracklist))]
 			tracklengths = [release.tracklist[k].duration for k in range(len(release.tracklist))]
 
@@ -201,17 +205,17 @@ class Album(object):
 		self.companies = sql_album_tuple[_ALBUM_COMPANIES].split(', ')
 	
 	def __unicode__(self):
-		s = u"album ID: " + unicode(self.id) + '\n'\
-			+ u"album title: " + unicode(self.title) + '\n'\
-			+ u"artist ID: " + unicode(self.artist_id) + '\n'\
-			+ u"artist name: " + unicode(self.artist_name) + '\n'\
-			+ u"year: " + unicode(self.year) + '\n'\
-			+ u"genres: " + unicode(", ".join(self.genres)) + '\n'\
-			+ u"notes: " + unicode(", ".join(self.notes)) + '\n'\
-			+ u"formats: " + unicode(", ".join(self.formats)) + '\n'\
-			+ u"track list: " + unicode(", ".join(self.track_list)) + '\n'\
-			+ u"track durations: " + unicode(", ".join(self.track_durations)) + '\n'\
-			+ u"companies: " + unicode(", ".join(self.companies))
+		s = 70*'-' + '\n' + u"[album ID]: " + unicode(self.id) + '\n'\
+			+ u"[album title]: " + unicode(self.title) + '\n'\
+			+ u"[artist ID]: " + unicode(self.artist_id) + '\n'\
+			+ u"[artist name]: " + unicode(self.artist_name) + '\n'\
+			+ u"[year]: " + unicode(self.year) + '\n'\
+			+ u"[genres]: " + unicode(", ".join(self.genres)) + '\n'\
+			+ u"[notes]: " + unicode(", ".join(self.notes)) + '\n'\
+			+ u"[formats]: " + unicode(", ".join(self.formats)) + '\n'\
+			+ u"[track list]: " + unicode(", ".join(self.track_list)) + '\n'\
+			+ u"[track durations]: " + unicode(", ".join(self.track_durations)) + '\n'\
+			+ u"[companies]: " + unicode(", ".join(self.companies)) + '\n' + 70*'-'
 
 		return s
 
@@ -231,14 +235,15 @@ class Track(object):
 		self.position = sql_track_tuple[_TRACK_POSITION]
 
 	def __unicode__(self):
-		s = u"track title: " + self.title + '\n'\
-			+ u"artist ID: " + unicode(self.artist_id) + '\n'\
-			+ u"artist name: " + unicode(self.artist_name) + '\n'\
-			+ u"album ID: " + unicode(self.album_id) + '\n'\
-			+ u"album title: " + unicode(self.album_title) + '\n'\
-			+ u"credits: " + unicode(", ".join(self.credits)) + '\n'\
-			+ u"duration: " + unicode(self.duration) + '\n'\
-			+ u"position: " + unicode(self.position)
+		
+		s = 70*'-' + '\n' + u"[track title]: " + self.title + '\n'\
+			+ u"[artist ID]: " + unicode(self.artist_id) + '\n'\
+			+ u"[artist name]: " + unicode(self.artist_name) + '\n'\
+			+ u"[album ID]: " + unicode(self.album_id) + '\n'\
+			+ u"[album title]: " + unicode(self.album_title) + '\n'\
+			+ u"[credits]: " + unicode(", ".join(self.credits)) + '\n'\
+			+ u"[duration]: " + unicode(self.duration) + '\n'\
+			+ u"[position]: " + unicode(self.position) + '\n' + 70*'-'
 		return s
 
 	def __str__(self):
@@ -251,8 +256,8 @@ class Artist(object):
 		self.name = sql_artist_tuple[_ARTIST_NAME]
 
 	def __unicode__(self):
-		s = u"artist ID: " + unicode(self.id) + '\n'\
-			+ u"artist name: " + unicode(self.name)
+		s = 70*'-' + '\n' + u"[artist ID]: " + unicode(self.id) + '\n'\
+			+ u"[artist name]: " + unicode(self.name) + '\n' + 70*'-'
 		return s
 
 	def __str__(self):
@@ -272,13 +277,15 @@ def load_album_list(filename):
 	with open(filename, 'rb') as csvfile:
 		data = csv.reader(csvfile, delimiter='|')
 		for row in data:
-			assert len(row) == 2, "loadList: error, row does not have sufficient entries"
-			artists.append(unicode(row[0]))
-			albums.append(unicode(row[1]))
+			if len(row) == 2:
+				artists.append(unicode(row[0]))
+				albums.append(unicode(row[1]))
+			else:
+				continue
 
 	return artists, albums
 
-def find_album_discogs(d, artist, album, max_depth = 25):
+def find_album_discogs(d, artist, album, max_depth = 15, min_ratio = 95):
 	"""
 	d: discog_client.Client object
 	artist: string
@@ -286,49 +293,80 @@ def find_album_discogs(d, artist, album, max_depth = 25):
 	
 	returns: discogs_client.models.Release
 	"""
-	results = d.search(artist + " - " + album, type='release')
-	#could spice this up by choosing the search result that includes the most meta data
-	#for now it just returns the first result which has the artist string listed in the artists tag and matching title
-	for j in xrange(min(len(results), max_depth)):
-		if validate_release(results[j], artist, album):
-			return results[j]
+	query_completed = False
+	while not query_completed:
+		try:
+			results = d.search(artist + " - " + album, type='release')
 
-	#if no results, try searching for just album name
-	results = d.search(album, type='release')
-	for j in xrange(min(len(results), max_depth)):
-		if validate_release(results[j], artist, album):
-			return results[j]	
+			#could spice this up by choosing the search result that includes the most meta data
+			#for now it just returns the first result which has the artist string listed in the artists tag and matching title
+			for j in xrange(min(len(results), max_depth)):
+				if _validate_release(results[j], artist, album, min_ratio) == True:
+					return results[j]
 
+			#if no results, try searching for just album name
+			results = d.search(album, type='release')
+			for j in xrange(min(len(results), max_depth)):
+				if _validate_release(results[j], artist, album, min_ratio) == True:
+					return results[j]
+
+		except HTTPError:
+			print("Too many requests made per minute. Waiting a moment.")
+			time.sleep(10)
+			continue
+
+		query_completed = True
+
+	#nothing found if it gets to here
 	return None
 
-def validate_release(discogs_release, artist_name, album_title):
+def _validate_release(discogs_release, artist_name, album_title, min_ratio):
 	# check that given artist appears in discogs_release.artists list
 	# check that album_title appears in release.title
-	if unidecode(artist_name.lower()) in ', '.join([unidecode(discogs_release.artists[k].name.lower()) for k in range(len(discogs_release.artists))]):
-		if unidecode(album_title.lower()) in unidecode(discogs_release.title.lower()):
+
+	#convert accent characters to non-accented with unidecode
+	#discogs_release.title will change once discogs_release.artists is accessed
+	full_title = unidecode(discogs_release.title).lower()
+	artists_concatenated = ', '.join([unidecode(discogs_release.artists[k].name.lower()) for k in range(len(discogs_release.artists))])
+	short_title = unidecode(discogs_release.title).lower() #usually artists are removed along with hyphen
+
+	r1 = fuzz.partial_ratio(artist_name.lower(), artists_concatenated)
+	r2 = fuzz.partial_ratio(artist_name.lower(), full_title)
+	r3 = fuzz.UWRatio(album_title.lower(), short_title)
+
+	#given artist_name should appear similarly in original release.title or in release.artists
+	if r1 > min_ratio or r2 > min_ratio:
+		if r3 > min_ratio: #given album_title should appear similarly in short_title
 			return True
 		else:
 			return False	
 	else:
 		return False
 
-def match_artist(discogs_artists, artist_name):
+def match_artist(discogs_artists, artist_name, min_ratio = 95):
 	#discogs_artists is a list of discogs Artists objects, each with a name attribute
 	#return the first Artist on the list that matches artist_name
 	for j in xrange(len(discogs_artists)):
-		if unidecode(artist_name.lower()) in unidecode(discogs_artists[j].name.lower()):
+		if fuzz.UWRatio(artist_name.lower(), unidecode(discogs_artists[j].name.lower())) > min_ratio:
 			return discogs_artists[j]
 
 	return None
 
 def find_artist_discogs(d, artist):
-	results = d.search(artist, type='artist')
-	m = len(results)
-	for j in xrange(m):
-		if re.search(artist, results[j].name):
-			return results[j]
-
-	print("findArtist: Artist '{}' not found.".format(artist))
+	query_completed = False
+	while not query_completed:
+		try:
+			results = d.search(artist, type='artist')
+			for j in xrange(len(results)):
+				if re.search(artist, results[j].name):
+					return results[j]
+		except HTTPError:
+			print("Too many requests made per minute. Waiting a moment.")
+			time.sleep(10)
+			continue
+		
+		query_completed = True
+	
 	return None
 
 def get_discogs_client(token):
