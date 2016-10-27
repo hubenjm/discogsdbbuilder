@@ -5,8 +5,6 @@ import re
 #from fuzzywuzzy import fuzz
 from unidecode import unidecode
 import os
-from colors import colors
-import progressbar
 
 #change the token in 'token.txt' as needed
 TOKEN = open('./token.txt').readline().strip()
@@ -183,8 +181,6 @@ class MusicDatabase(object):
 				trackcredits = ", ".join([str(a.id) + " - " + a.name for a in release.tracklist[k].credits])
 				trackdata = [release.tracklist[k].title, release_artist.id, release_artist.name, release.id, release.title, trackcredits, release.tracklist[k].duration, release.tracklist[k].position]
 				self._cur.execute("INSERT OR IGNORE INTO track (title, artistID, artist, albumID, album, credits, duration, position) VALUES (?,?,?,?,?,?,?,?)", trackdata)
-
-			#progressbar.printProgress(j+1, m, prefix = 'add_data: adding album {}...'.format(j+1), suffix = '', decimals = 2, barLength = 40, printEnd = True)
 
 		self._conn.commit()
 
