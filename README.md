@@ -11,8 +11,9 @@ Once the database has been constructed, the user can then run standard SQL queri
 
 # Instructions
 
-To get started, you must obtain a token ID in order to make queries to www.discogs.com through their API. To do this, see https://www.discogs.com/developers/#page:authentication,header:authentication-request-token-url.
+To get started, download this repository. You must then obtain a token ID in order to make queries to www.discogs.com through their API. To do this, see https://www.discogs.com/developers/#page:authentication,header:authentication-request-token-url.
 Essentially, you need to register an account there and then go to https://www.discogs.com/settings/developers.
+Once you have a token ID, put it in a file named token.txt in the top-level directory.
 
 # Design
 
