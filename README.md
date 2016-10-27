@@ -36,4 +36,5 @@ for a in x.find_album(album_title):
 
 * discogs_client https://github.com/discogs/discogs_client
 * unidecode https://pypi.python.org/pypi/Unidecode
+* fuzzywuzzy https://pypi.python.org/pypi/fuzzywuzzy
 * sqlite3
