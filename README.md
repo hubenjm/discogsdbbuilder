@@ -39,3 +39,4 @@ for a in x.find_album(album_title):
 * unidecode https://pypi.python.org/pypi/Unidecode
 * fuzzywuzzy https://pypi.python.org/pypi/fuzzywuzzy
 * sqlite3
+* python-Levenshtein (optional)

@@ -3,11 +3,21 @@ from discogs_client.exceptions import HTTPError
 import sqlite3
 import csv
 import re
+import logging
 from fuzzywuzzy import fuzz
 from unidecode import unidecode
 from functools import wraps
-import os
+import os, sys
 import time
+
+#logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+ch = logging.StreamHandler(sys.stdout)
+ch.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+ch.setFormatter(formatter)
+logger.addHandler(ch)
 
 #change the token in 'token.txt' as needed
 TOKEN = open('./token.txt').readline().strip()
@@ -150,15 +160,15 @@ class MusicDatabase(object):
 		for j in xrange(len(albums)):
 			release = find_album_discogs(d, artists[j], albums[j], min_ratio = self._min_ratio)
 			if release is None:
-				print("add_data: no album found for artist = {}, album = {}. skipping...".format(artists[j], albums[j])) #incorporate logging here?
+				logger.info("no album found for artist = {}, album = {}. skipping...".format(artists[j], albums[j])) #incorporate logging here?
 				continue
 
-			release_artist = match_artist(release.artists, artists[j], min_ratio = self._min_ratio)
+			release_artist = _match_artist(release.artists, artists[j], min_ratio = self._min_ratio)
 			if release_artist is None:
-				print("add_data: no album found for artist = {}, album = {}. skipping...".format(artists[j], albums[j]))
+				logger.info("add_data: no album found for artist = {}, album = {}. skipping...".format(artists[j], albums[j]))
 				continue
 
-			print u"add_data: {}/{} - ".format(j+1, len(albums)) + release_artist.name + " - " + release.title
+			logger.info(u"add_data: {}/{} - ".format(j+1, len(albums)) + release_artist.name + " - " + release.title)
 			#insert artist into database if not yet present
 			self._cur.execute("INSERT OR IGNORE INTO artist (ID, name) VALUES (?,?)", [release_artist.id, release_artist.name])
 
@@ -311,7 +321,7 @@ def find_album_discogs(d, artist, album, max_depth = 15, min_ratio = 95):
 					return results[j]
 
 		except HTTPError:
-			print("Too many requests made per minute. Waiting a moment.")
+			logger.warn("Too many requests made per minute. Waiting a moment.")
 			time.sleep(10)
 			continue
 
@@ -343,7 +353,7 @@ def _validate_release(discogs_release, artist_name, album_title, min_ratio):
 	else:
 		return False
 
-def match_artist(discogs_artists, artist_name, min_ratio = 95):
+def _match_artist(discogs_artists, artist_name, min_ratio = 95):
 	#discogs_artists is a list of discogs Artists objects, each with a name attribute
 	#return the first Artist on the list that matches artist_name
 	for j in xrange(len(discogs_artists)):
@@ -361,7 +371,7 @@ def find_artist_discogs(d, artist):
 				if re.search(artist, results[j].name):
 					return results[j]
 		except HTTPError:
-			print("Too many requests made per minute. Waiting a moment.")
+			logger.warn("Too many requests made per minute. Waiting a moment.")
 			time.sleep(10)
 			continue
 		
